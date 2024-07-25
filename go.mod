@@ -3,8 +3,8 @@ module aniverse
 go 1.22.5
 
 require (
-	github.com/Ithilias/anilistgo v0.0.18
 	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.22
 )

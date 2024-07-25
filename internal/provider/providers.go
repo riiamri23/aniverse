@@ -4,12 +4,20 @@ import (
 	"aniverse/internal/service"
 )
 
+// Provider is a collection of service providers
 type Provider struct {
-	AnimeService *service.AnimeService
+	TokenManager *service.TokenManager
+	AniList      InformationProvider
+	// Kitsu        InfoProvider
+	// Inject other service providers here
 }
 
-func NewProvider(accessToken string) *Provider {
+// NewProvider creates a new provider
+func NewProvider(tokenManager *service.TokenManager) *Provider {
 	return &Provider{
-		AnimeService: service.NewAnimeService(accessToken),
+		TokenManager: tokenManager,
+		AniList:      service.NewAniList(tokenManager),
+		// Kitsu:        service.NewKitsu(tokenManager),
+		// Instantiate other providers here
 	}
 }

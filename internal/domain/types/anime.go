@@ -33,28 +33,28 @@ type Anime struct {
 }
 
 type AnimeInfo struct {
-	ID              string      `json:"id"`
-	Title           *Title      `json:"title"`
-	Artwork         []Artwork   `json:"artwork"`
-	Synonyms        []string    `json:"synonyms"`
-	TotalEpisodes   *int        `json:"totalEpisodes"`
-	CurrentEpisode  *int        `json:"currentEpisode"`
-	BannerImage     *string     `json:"bannerImage"`
-	CoverImage      *string     `json:"coverImage"`
-	Color           *string     `json:"color"`
-	Season          string      `json:"season"`
-	Year            *int        `json:"year"`
-	Status          *string     `json:"status"`
-	Genres          []string    `json:"genres"`
-	Description     *string     `json:"description"`
-	Format          string      `json:"format"`
-	Duration        *int        `json:"duration"`
-	Trailer         *string     `json:"trailer"`
-	CountryOfOrigin *string     `json:"countryOfOrigin"`
-	Tags            []string    `json:"tags"`
-	Relations       []Relation  `json:"relations"`
-	Characters      []Character `json:"characters"`
-	Type            string      `json:"type"`
-	Rating          float64     `json:"rating"`
-	Popularity      float64     `json:"popularity"`
+	ID           int        `json:"id"`
+	Title        Title      `json:"title"`
+	CoverImage   CoverImage `json:"coverImage"`
+	Description  string     `json:"description"`
+	Status       string     `json:"status"`
+	Episodes     int        `json:"episodes"`
+	Duration     int        `json:"duration"`
+	Chapters     *int       `json:"chapters,omitempty"`
+	Volumes      *int       `json:"volumes,omitempty"`
+	Season       string     `json:"season"`
+	SeasonYear   int        `json:"seasonYear"`
+	Genres       []string   `json:"genres"`
+	Synonyms     []string   `json:"synonyms"`
+	AverageScore int        `json:"averageScore"`
+	MeanScore    int        `json:"meanScore"`
+	Popularity   int        `json:"popularity"`
+	Trailer      *Trailer   `json:"trailer,omitempty"` // Update to pointer to handle null values
+	BannerImage  string     `json:"bannerImage"`
+}
+
+type Trailer struct {
+	ID        string `json:"id"`
+	Site      string `json:"site"`
+	Thumbnail string `json:"thumbnail"`
 }

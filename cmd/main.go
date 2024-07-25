@@ -3,6 +3,7 @@ package main
 import (
 	"aniverse/internal/handler"
 	"aniverse/internal/provider"
+	"aniverse/internal/service"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 type TokenResponse struct {
@@ -26,18 +28,18 @@ func main() {
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	clientID := os.Getenv("CLIENT_ID")
-	clientSecret := os.Getenv("CLIENT_SECRET")
+	clientID := os.Getenv("ANILIST_CLIENT_ID")
+	clientSecret := os.Getenv("ANILIST_CLIENT_SECRET")
 	redirectURI := "http://localhost:3000/callback"
 
-	var accessToken string
+	if clientID == "" || clientSecret == "" {
+		log.Fatal("ANILIST_CLIENT_ID and ANILIST_CLIENT_SECRET must be set in the environment variables")
+	}
+
+	tokenManager := service.NewTokenManager()
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		authURL := fmt.Sprintf(
-			"https://anilist.co/api/v2/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code",
-			clientID,
-			redirectURI,
-		)
+		authURL := fmt.Sprintf("https://anilist.co/api/v2/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code", clientID, redirectURI)
 		return c.Redirect(authURL)
 	})
 
@@ -47,38 +49,35 @@ func main() {
 			return c.Status(400).SendString("No code provided")
 		}
 
-		// Exchange the authorization code for an access token
 		token, err := getAccessToken(clientID, clientSecret, redirectURI, code)
 		if err != nil {
+			log.Printf("Failed to get access token: %v", err)
 			return c.Status(500).SendString(fmt.Sprintf("Failed to get access token: %v", err))
 		}
 
-		// Store the access token
-		accessToken = token.AccessToken
+		tokenManager.SetToken("anilist", token.AccessToken)
+		log.Printf("Access Token for AniList: %s", token.AccessToken)
 
-		// For demonstration purposes, return the access token in the response
 		return c.JSON(token)
 	})
 
-	// Middleware to check if access token is set
+	// Middleware to ensure access token is set
 	app.Use(func(c *fiber.Ctx) error {
-		if accessToken == "" {
+		if tokenManager.GetToken("anilist") == "" {
 			return c.Status(401).SendString("Access token not set. Please authenticate first.")
 		}
 		return c.Next()
 	})
 
-	// Initialize provider and handler outside the callback
-	prov := provider.NewProvider(accessToken)
-	animeHandler := handler.NewAnimeHandler(prov.AnimeService)
+	// Initialize services with the token manager
+	services := map[string]provider.InformationProvider{
+		"anilist": service.NewAniList(tokenManager),
+	}
 
-	// Set up routes
-	app.Get("/anime/:id", animeHandler.GetAnime)
-	app.Get("/findAnime", animeHandler.FindAnime)
-	app.Get("/user/:username/following", animeHandler.GetFollowingNames)
-	app.Get("/user/:username/updates", animeHandler.GetUserUpdates)
-	app.Get("/user/:username/progress/:mediaID", animeHandler.GetUserProgress)
-	app.Post("/user/progress/update", animeHandler.UpdateUserProgress)
+	h := handler.NewHandler(services)
+
+	app.Get("/anime/:id", h.GetAnimeInfo)
+
 	log.Fatal(app.Listen(":3000"))
 }
 

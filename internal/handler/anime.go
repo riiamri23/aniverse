@@ -1,149 +1,78 @@
 package handler
 
 import (
+	"aniverse/internal/domain/types"
+	"aniverse/internal/provider"
 	"aniverse/internal/service"
+	"context"
+	"log"
 	"strconv"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
+	_ "github.com/joho/godotenv/autoload"
 )
 
-type AnimeHandler struct {
-	service *service.AnimeService
+type Handler struct {
+	services map[string]provider.InformationProvider
 }
 
-func NewAnimeHandler(service *service.AnimeService) *AnimeHandler {
-	return &AnimeHandler{service: service}
+func NewHandler(services map[string]provider.InformationProvider) *Handler {
+	return &Handler{services: services}
 }
 
-func (h *AnimeHandler) GetAnime(c *fiber.Ctx) error {
+func (h *Handler) GetAnimeInfo(c *fiber.Ctx) error {
 	id := c.Params("id")
+	providerName := c.Query("provider", "anilist")
+	var info *types.AnimeInfo
 
-	animeID, err := strconv.Atoi(id)
-	if err != nil {
-		return c.Status(400).SendString("Invalid anime ID")
-	}
+	ctx := context.Background() // Create a context
 
-	anime, err := h.service.GetAnimeByID(animeID)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-
-	if anime.ID == 0 {
-		return c.Status(404).SendString("Anime not found")
-	}
-
-	return c.JSON(anime)
-}
-
-func (h *AnimeHandler) FindAnime(c *fiber.Ctx) error {
-	title := c.Query("title")
-	if title == "" {
-		return c.Status(400).SendString("Title is required")
-	}
-
-	var firstEpisodeDate *time.Time
-	if date := c.Query("firstEpisodeDate"); date != "" {
-		parsedDate, err := time.Parse(time.RFC3339, date)
-		if err != nil {
-			return c.Status(400).SendString("Invalid date format")
+	switch providerName {
+	case "anilist":
+		if provider, ok := h.services["anilist"].(*service.AniList); ok {
+			mediaID, err := strconv.Atoi(id)
+			if err == nil {
+				info, err = provider.GetAnimeInfoByID(ctx, mediaID)
+				if err != nil {
+					log.Printf("Error fetching anime info: %v", err)
+					return c.Status(500).SendString(err.Error())
+				}
+			} else {
+				info, err = provider.GetAnimeInfoByTitle(ctx, id)
+				if err != nil {
+					log.Printf("Error fetching anime info: %v", err)
+					return c.Status(500).SendString(err.Error())
+				}
+			}
 		}
-		firstEpisodeDate = &parsedDate
+	default:
+		return c.Status(400).SendString("Invalid provider")
 	}
 
-	offset, err := strconv.Atoi(c.Query("offset", "0"))
-	if err != nil {
-		return c.Status(400).SendString("Invalid offset value")
-	}
-
-	anime, err := h.service.FindAnime(title, firstEpisodeDate, offset)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-
-	return c.JSON(anime)
+	return c.JSON(info)
 }
 
-func (h *AnimeHandler) GetFollowingNames(c *fiber.Ctx) error {
-	username := c.Params("username")
-	if username == "" {
-		return c.Status(400).SendString("Username is required")
-	}
+// func (h *Handler) AuthenticateKitsu(c *fiber.Ctx) error {
+// 	var credentials struct {
+// 		Username string `json:"username"`
+// 		Password string `json:"password"`
+// 	}
 
-	names, err := h.service.GetFollowingNames(username)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
+// 	credentials.Username = os.Getenv("KITSU_USERNAME")
+// 	credentials.Password = os.Getenv("KITSU_PASSWORD")
 
-	return c.JSON(names)
-}
+// 	if err := c.BodyParser(&credentials); err != nil {
+// 		return c.Status(400).SendString("Invalid request payload")
+// 	}
 
-func (h *AnimeHandler) GetUserUpdates(c *fiber.Ctx) error {
-	username := c.Params("username")
-	mediaType := c.Query("mediaType")
-	if username == "" || mediaType == "" {
-		return c.Status(400).SendString("Username and mediaType are required")
-	}
+// 	authResponse, err := service.GetKitsuAccessToken(credentials.Username, credentials.Password)
+// 	if err != nil {
+// 		return c.Status(500).SendString(fmt.Sprintf("Failed to authenticate with Kitsu: %v", err))
+// 	}
 
-	var chunk *int
-	if chunkParam := c.Query("chunk"); chunkParam != "" {
-		chunkValue, err := strconv.Atoi(chunkParam)
-		if err != nil {
-			return c.Status(400).SendString("Invalid chunk value")
-		}
-		chunk = &chunkValue
-	}
+// 	if kitsuProvider, ok := h.services["kitsu"].(*service.Kitsu); ok {
+// 		kitsuProvider.SetAccessToken(authResponse.AccessToken)
+// 	}
 
-	var perChunk *int
-	if perChunkParam := c.Query("perChunk"); perChunkParam != "" {
-		perChunkValue, err := strconv.Atoi(perChunkParam)
-		if err != nil {
-			return c.Status(400).SendString("Invalid perChunk value")
-		}
-		perChunk = &perChunkValue
-	}
-
-	updates, err := h.service.GetUserUpdates(username, mediaType, chunk, perChunk)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-
-	return c.JSON(updates)
-}
-
-func (h *AnimeHandler) GetUserProgress(c *fiber.Ctx) error {
-	username := c.Params("username")
-	mediaIDParam := c.Params("mediaID")
-	if username == "" || mediaIDParam == "" {
-		return c.Status(400).SendString("Username and mediaID are required")
-	}
-
-	mediaID, err := strconv.Atoi(mediaIDParam)
-	if err != nil {
-		return c.Status(400).SendString("Invalid mediaID value")
-	}
-
-	progress, err := h.service.GetUserProgress(username, mediaID)
-	if err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-
-	return c.JSON(fiber.Map{"progress": progress})
-}
-
-func (h *AnimeHandler) UpdateUserProgress(c *fiber.Ctx) error {
-	var payload struct {
-		MediaID  int    `json:"mediaID"`
-		Progress int    `json:"progress"`
-		Status   string `json:"status"`
-	}
-	if err := c.BodyParser(&payload); err != nil {
-		return c.Status(400).SendString("Invalid request payload")
-	}
-
-	if err := h.service.UpdateUserProgress(payload.MediaID, payload.Progress, payload.Status); err != nil {
-		return c.Status(500).SendString(err.Error())
-	}
-
-	return c.SendStatus(204)
-}
+// 	return c.JSON(authResponse)
+// }
