@@ -13,66 +13,97 @@ import (
 )
 
 type Handler struct {
-	services map[string]provider.InformationProvider
+	infoProvider  map[string]provider.InformationProvider
+	animeProvider map[string]provider.AnimeServiceProvider
 }
 
-func NewHandler(services map[string]provider.InformationProvider) *Handler {
-	return &Handler{services: services}
+func NewHandler(info map[string]provider.InformationProvider, anime map[string]provider.AnimeServiceProvider) *Handler {
+	return &Handler{infoProvider: info, animeProvider: anime}
 }
 
+// GetAnimeInfo fetches anime info by id or title
 func (h *Handler) GetAnimeInfo(c *fiber.Ctx) error {
 	id := c.Params("id")
 	providerName := c.Query("provider", "anilist")
 	var info *types.AnimeInfo
 
-	ctx := context.Background() // Create a context
-
-	switch providerName {
-	case "anilist":
-		if provider, ok := h.services["anilist"].(*service.AniList); ok {
-			mediaID, err := strconv.Atoi(id)
-			if err == nil {
-				info, err = provider.GetAnimeInfoByID(ctx, mediaID)
-				if err != nil {
-					log.Printf("Error fetching anime info: %v", err)
-					return c.Status(500).SendString(err.Error())
-				}
-			} else {
-				info, err = provider.GetAnimeInfoByTitle(ctx, id)
-				if err != nil {
-					log.Printf("Error fetching anime info: %v", err)
-					return c.Status(500).SendString(err.Error())
-				}
-			}
-		}
-	default:
+	ctx := context.Background()
+	provider, ok := h.infoProvider[providerName].(*service.AniList)
+	if !ok {
 		return c.Status(400).SendString("Invalid provider")
+	}
+
+	info, err := fetchInfo(provider, ctx, id)
+	if err != nil {
+		log.Printf("Error fetching anime info: %v", err)
+		return c.Status(500).SendString(err.Error())
 	}
 
 	return c.JSON(info)
 }
 
-// func (h *Handler) AuthenticateKitsu(c *fiber.Ctx) error {
-// 	var credentials struct {
-// 		Username string `json:"username"`
-// 		Password string `json:"password"`
-// 	}
+func (h *Handler) SearchAnime(c *fiber.Ctx) error {
+	query := c.Query("q")
+	providerName := c.Query("provider", "animepahe")
+	var results []types.Result
 
-// 	credentials.Username = os.Getenv("KITSU_USERNAME")
-// 	credentials.Password = os.Getenv("KITSU_PASSWORD")
+	provider, ok := h.animeProvider[providerName]
+	if !ok {
+		return c.Status(400).SendString("Invalid provider")
+	}
 
-// 	if err := c.BodyParser(&credentials); err != nil {
-// 		return c.Status(400).SendString("Invalid request payload")
-// 	}
+	results, err := provider.Search(query)
+	if err != nil {
+		log.Printf("Error searching anime: %v", err)
+		return c.Status(500).SendString(err.Error())
+	}
 
-// 	authResponse, err := service.GetKitsuAccessToken(credentials.Username, credentials.Password)
-// 	if err != nil {
-// 		return c.Status(500).SendString(fmt.Sprintf("Failed to authenticate with Kitsu: %v", err))
-// 	}
+	return c.JSON(results)
+}
 
-// 	if kitsuProvider, ok := h.services["kitsu"].(*service.Kitsu); ok {
-// 		kitsuProvider.SetAccessToken(authResponse.AccessToken)
-// 	}
+func (h *Handler) FetchEpisodes(c *fiber.Ctx) error {
+	id := c.Params("id")
+	providerName := c.Query("provider", "animepahe")
+	var episodes []types.Episode
 
-// 	return c.JSON(authResponse)
-// }
+	provider, ok := h.animeProvider[providerName]
+	if !ok {
+		return c.Status(400).SendString("Invalid provider")
+	}
+
+	episodes, err := provider.FetchEpisodes(id)
+	if err != nil {
+		log.Printf("Error fetching episodes: %v", err)
+		return c.Status(500).SendString(err.Error())
+	}
+
+	return c.JSON(episodes)
+}
+
+// FetchSources fetches sources for a given episode
+func (h *Handler) FetchSources(c *fiber.Ctx) error {
+	id := c.Params("id")
+	providerName := c.Query("provider", "animepahe")
+	var source *types.Source
+
+	provider, ok := h.animeProvider[providerName].(*service.AnimePahe)
+	if !ok {
+		return c.Status(400).SendString("Invalid provider")
+	}
+
+	source, err := provider.FetchSources(id, types.SubTypeSub, types.StreamingServerKwik)
+	if err != nil {
+		log.Printf("Error fetching sources: %v", err)
+		return c.Status(500).SendString(err.Error())
+	}
+
+	return c.JSON(source)
+}
+
+func fetchInfo(provider *service.AniList, ctx context.Context, id string) (*types.AnimeInfo, error) {
+	mediaID, err := strconv.Atoi(id)
+	if err != nil {
+		return provider.GetAnimeInfoByTitle(ctx, id)
+	}
+	return provider.GetAnimeInfoByID(ctx, mediaID)
+}

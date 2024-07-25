@@ -2,14 +2,13 @@ package service
 
 import (
 	"aniverse/internal/domain/types"
+	"aniverse/internal/helper"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"html"
 	"net/http"
-	"regexp"
-	"strings"
+
+	"github.com/goccy/go-json"
 )
 
 const commonQueryFields = `
@@ -44,6 +43,7 @@ const commonQueryFields = `
 		thumbnail
 	}
 	bannerImage
+	
 `
 
 type AniList struct {
@@ -70,36 +70,14 @@ func NewAniList(tokenManager *TokenManager) *AniList {
 
 // GetAnimeInfoByID fetches information about an anime from AniList by ID
 func (provider *AniList) GetAnimeInfoByID(ctx context.Context, mediaID int) (*types.AnimeInfo, error) {
-	query := fmt.Sprintf(`
-		query ($id: Int) {
-			Media (id: $id) {
-				%s
-			}
-		}`, commonQueryFields)
-
-	variables := map[string]interface{}{
-		"id": mediaID,
-	}
-
-	return provider.fetchAnimeInfo(ctx, query, variables)
+	query := fmt.Sprintf(`query ($id: Int) { Media (id: $id) { %s } }`, commonQueryFields)
+	return provider.fetchAnimeInfo(ctx, query, map[string]interface{}{"id": mediaID})
 }
 
 // GetAnimeInfoByTitle fetches information about an anime from AniList by title
 func (provider *AniList) GetAnimeInfoByTitle(ctx context.Context, title string) (*types.AnimeInfo, error) {
-	query := fmt.Sprintf(`
-	query ($search: String) {
-		Page(page: 1, perPage: 1) {
-			media(search: $search, type: ANIME) {
-				%s
-			}
-		}
-	}`, commonQueryFields)
-
-	variables := map[string]interface{}{
-		"search": title,
-	}
-
-	return provider.fetchAnimeInfo(ctx, query, variables)
+	query := fmt.Sprintf(`query ($search: String) { Page(page: 1, perPage: 1) { media(search: $search, type: ANIME) { %s } } }`, commonQueryFields)
+	return provider.fetchAnimeInfo(ctx, query, map[string]interface{}{"search": title})
 }
 
 // fetchAnimeInfo performs the actual data fetching from AniList API
@@ -124,8 +102,10 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 	}
 	defer resp.Body.Close()
 
-	var rawResponse bytes.Buffer
-	rawResponse.ReadFrom(resp.Body)
+	var raw bytes.Buffer
+	if _, err := raw.ReadFrom(resp.Body); err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	var result struct {
 		Data struct {
@@ -136,22 +116,22 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 		} `json:"data"`
 	}
 
-	if err := json.NewDecoder(&rawResponse).Decode(&result); err != nil {
+	if err := json.NewDecoder(&raw).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	animeInfo := &result.Data.Media
+	anime := &result.Data.Media
 	if len(result.Data.Page.Media) > 0 {
-		animeInfo = &result.Data.Page.Media[0]
+		anime = &result.Data.Page.Media[0]
 	}
 
-	if animeInfo == nil {
+	if anime == nil {
 		return nil, fmt.Errorf("no anime info found")
 	}
 
-	animeInfo.Description = cleanDescription(animeInfo.Description)
-	logAnimeInfo(animeInfo)
-	return animeInfo, nil
+	anime.Description = helper.CleanDescription(anime.Description)
+	logAnimeInfo(anime)
+	return anime, nil
 }
 
 // newRequest creates a new HTTP request with the given body
@@ -173,47 +153,25 @@ func (provider *AniList) new_request(ctx context.Context, body []byte) (*http.Re
 	return req, nil
 }
 
-// cleanDescription cleans the description text by unescaping HTML entities, removing HTML tags, and replacing newlines with spaces
-func cleanDescription(description string) string {
-	description = html.UnescapeString(description)
-	description = removeHTMLTags(description)
-	description = strings.ReplaceAll(description, "\n", " ")
-	return description
-}
-
 // logAnimeInfo logs the detailed information of an anime.
-func logAnimeInfo(animeInfo *types.AnimeInfo) {
+func logAnimeInfo(anime *types.AnimeInfo) {
 	fmt.Printf(
 		"ID: %d\nTitle (Romaji): %s\nTitle (English): %s\nTitle (Native): %s\nDescription: %s\nStatus: %s\nEpisodes: %d\nDuration: %d\nSeason: %s %d\nGenres: %v\nSynonyms: %v\nAverage Score: %d\nMean Score: %d\nPopularity: %d\nBanner Image: %s\n",
-		animeInfo.ID,
-		getStringValue(animeInfo.Title.Romaji),
-		getStringValue(animeInfo.Title.English),
-		getStringValue(animeInfo.Title.Native),
-		animeInfo.Description,
-		animeInfo.Status,
-		animeInfo.Episodes,
-		animeInfo.Duration,
-		animeInfo.Season,
-		animeInfo.SeasonYear,
-		animeInfo.Genres,
-		animeInfo.Synonyms,
-		animeInfo.AverageScore,
-		animeInfo.MeanScore,
-		animeInfo.Popularity,
-		animeInfo.BannerImage,
+		anime.ID,
+		helper.GetStringValue(anime.Title.Romaji),
+		helper.GetStringValue(anime.Title.English),
+		helper.GetStringValue(anime.Title.Native),
+		anime.Description,
+		anime.Status,
+		anime.Episodes,
+		anime.Duration,
+		anime.Season,
+		anime.SeasonYear,
+		anime.Genres,
+		anime.Synonyms,
+		anime.AverageScore,
+		anime.MeanScore,
+		anime.Popularity,
+		anime.BannerImage,
 	)
-}
-
-// removeHTMLTags removes HTML tags from a string
-func removeHTMLTags(input string) string {
-	re := regexp.MustCompile(`<.*?>`)
-	return re.ReplaceAllString(input, "")
-}
-
-// getStringValue safely dereferences a string pointer, returning an empty string if the pointer is nil.
-func getStringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

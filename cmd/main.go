@@ -1,15 +1,16 @@
 package main
 
 import (
+	"aniverse/config"
 	"aniverse/internal/handler"
 	"aniverse/internal/provider"
 	"aniverse/internal/service"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -24,32 +25,30 @@ type TokenResponse struct {
 }
 
 func main() {
+	setting := config.LoadConfig()
+
 	app := fiber.New()
+
 	app.Use(cors.New())
 	app.Use(logger.New())
 
-	clientID := os.Getenv("ANILIST_CLIENT_ID")
-	clientSecret := os.Getenv("ANILIST_CLIENT_SECRET")
-	redirectURI := "http://localhost:3000/callback"
-
-	if clientID == "" || clientSecret == "" {
-		log.Fatal("ANILIST_CLIENT_ID and ANILIST_CLIENT_SECRET must be set in the environment variables")
-	}
-
 	tokenManager := service.NewTokenManager()
+	providers := provider.NewProvider(tokenManager)
 
+	// Route to start the OAuth flow
 	app.Get("/", func(c *fiber.Ctx) error {
-		authURL := fmt.Sprintf("https://anilist.co/api/v2/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code", clientID, redirectURI)
+		authURL := fmt.Sprintf("https://anilist.co/api/v2/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code", setting.ClientID, setting.RedirectURI)
 		return c.Redirect(authURL)
 	})
 
+	// Callback route to handle OAuth response
 	app.Get("/callback", func(c *fiber.Ctx) error {
 		code := c.Query("code")
 		if code == "" {
 			return c.Status(400).SendString("No code provided")
 		}
 
-		token, err := getAccessToken(clientID, clientSecret, redirectURI, code)
+		token, err := getAccessToken(setting.ClientID, setting.ClientSecret, setting.RedirectURI, code)
 		if err != nil {
 			log.Printf("Failed to get access token: %v", err)
 			return c.Status(500).SendString(fmt.Sprintf("Failed to get access token: %v", err))
@@ -69,16 +68,24 @@ func main() {
 		return c.Next()
 	})
 
-	// Initialize services with the token manager
-	services := map[string]provider.InformationProvider{
-		"anilist": service.NewAniList(tokenManager),
-	}
+	// Initialize handlers
+	h := handler.NewHandler(
+		map[string]provider.InformationProvider{
+			"anilist": providers.AniList,
+		},
+		map[string]provider.AnimeServiceProvider{
+			"animepahe": providers.AnimePahe,
+		},
+	)
 
-	h := handler.NewHandler(services)
+	// Define routes
+	app.Get("/info/:id", h.GetAnimeInfo)
+	app.Get("/search", h.SearchAnime)
+	app.Get("/episodes/:id", h.FetchEpisodes)
+	app.Get("/sources/:id", h.FetchSources)
 
-	app.Get("/anime/:id", h.GetAnimeInfo)
-
-	log.Fatal(app.Listen(":3000"))
+	// Start the server
+	log.Fatal(app.Listen(setting.Port))
 }
 
 func getAccessToken(clientID, clientSecret, redirectURI, code string) (*TokenResponse, error) {
@@ -97,13 +104,18 @@ func getAccessToken(clientID, clientSecret, redirectURI, code string) (*TokenRes
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to get access token: status %d, response: %s", resp.StatusCode, string(bodyBytes))
+	}
+
 	var tokenResponse TokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &tokenResponse, nil

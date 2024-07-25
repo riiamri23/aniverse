@@ -1,12 +1,12 @@
 package types
 
 type Source struct {
-	Sources   []SourceDetail    `json:"sources"`
-	Subtitles []Subtitle        `json:"subtitles"`
-	Audio     []Audio           `json:"audio"`
-	Intro     TimeRange         `json:"intro"`
-	Outro     TimeRange         `json:"outro"`
-	Headers   map[string]string `json:"headers"`
+	Sources   []SourceDetail      `json:"sources"`
+	Subtitles []Subtitle          `json:"subtitles"`
+	Audio     []Audio             `json:"audio"`
+	Intro     TimeRange           `json:"intro"`
+	Outro     TimeRange           `json:"outro"`
+	Headers   map[string][]string `json:"headers"`
 }
 
 type SourceDetail struct {
@@ -17,7 +17,7 @@ type SourceDetail struct {
 type Subtitle struct {
 	URL   string `json:"url"`
 	Lang  string `json:"lang"`
-	Label string `json:"label"`
+	Label string `json:"label,omitempty"`
 }
 
 type Audio struct {

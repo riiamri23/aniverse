@@ -4,24 +4,29 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 type Config struct {
+	Port         string
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
 }
 
-// LoadConfig loads configuration from environment variables
 func LoadConfig() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
+	port := os.Getenv("PORT")
+	clientID := os.Getenv("ANILIST_CLIENT_ID")
+	clientSecret := os.Getenv("ANILIST_CLIENT_SECRET")
+	redirectURI := os.Getenv("ANILIST_REDIRECT_URI")
+
+	log.Printf("Loaded environment variables: PORT=%s, ANILIST_CLIENT_ID=%s, ANILIST_CLIENT_SECRET=%s, ANILIST_REDIRECT_URI=%s",
+		port, clientID, clientSecret, redirectURI)
 
 	return &Config{
-		ClientID:     os.Getenv("ANILIST_CLIENT_ID"),
-		ClientSecret: os.Getenv("ANILIST_CLIENT_SECRET"),
-		RedirectURI:  os.Getenv("REDIRECT_URI"),
+		Port:         port,
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURI:  redirectURI,
 	}
 }

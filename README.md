@@ -1,5 +1,5 @@
 # Aniverse
-an uneducated attempt at rewriting consumet / anify in go.
+An uneducated attempt at rewriting [Consumet](https://github.com/consumet/api.consumet.org?tab=readme-ov-file#installation) / [Anify](https://github.com/Eltik/Anify) in Go.
 
 ### TODO 
 - Quite literally everything.
@@ -12,19 +12,18 @@ an uneducated attempt at rewriting consumet / anify in go.
 Fetch information about an anime by its ID or title from AniList.
 ##### Query Parameters
 - `provider` (optional): The provider to fetch the anime information from. Default is `anilist`.
-- `searchBy` (optional): Specify whether to search by `id` or `title`. Default is `id`.
 
 ##### Request Examples
 
 ##### By ID
 ```http
-GET /anime/166531?provider=anilist
+GET /info/166531?provider=anilist
 ```
 
 
 ##### By Title
 ```http
-GET /anime/oshi-no-ko-2nd-season??provider=anilist
+GET /info/oshi-no-ko-2nd-season??provider=anilist
 ```
 
 ##### Response
