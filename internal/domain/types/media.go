@@ -8,6 +8,11 @@ type Episodes struct {
 	} `json:"latest"`
 	Data []EpisodeData `json:"data"`
 }
+type CoverImage struct {
+	Large      string  `json:"large"`
+	ExtraLarge string  `json:"extraLarge"`
+	Color      *string `json:"color"`
+}
 
 type Chapters struct {
 	Latest struct {
@@ -46,5 +51,4 @@ type Chapter struct {
 	Number    int      `json:"number"`
 	Rating    *float64 `json:"rating"`
 	UpdatedAt *int64   `json:"updatedAt,omitempty"`
-	Mixdrop   *string  `json:"mixdrop,omitempty"`
 }

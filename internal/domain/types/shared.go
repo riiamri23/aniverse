@@ -1,9 +1,10 @@
 package types
 
 type Title struct {
-	Romaji  *string `json:"romaji"`
-	English *string `json:"english"`
-	Native  *string `json:"native"`
+	Romaji   *string  `json:"romaji"`
+	English  *string  `json:"english"`
+	Native   *string  `json:"native"`
+	Synonyms []string `json:"synonyms"`
 }
 
 type Mapping struct {
@@ -36,4 +37,22 @@ type Character struct {
 type VoiceActor struct {
 	Name  string `json:"name"`
 	Image string `json:"image"`
+}
+
+type Relations struct {
+	Edges []RelationEdge `json:"edges"`
+}
+
+type RelationEdge struct {
+	Node         Relation `json:"node"`
+	RelationType string   `json:"relationType"`
+}
+
+type Characters struct {
+	Edges []CharacterEdge `json:"edges"`
+}
+
+type CharacterEdge struct {
+	Node        Character    `json:"node"`
+	VoiceActors []VoiceActor `json:"voiceActors"`
 }

@@ -3,24 +3,24 @@ package types
 type Anime struct {
 	ID                string             `json:"id"`
 	Slug              string             `json:"slug"`
-	CoverImage        *string            `json:"coverImage"`
-	BannerImage       *string            `json:"bannerImage"`
-	Trailer           *string            `json:"trailer"`
-	Status            *string            `json:"status"`
+	CoverImage        *CoverImage        `json:"coverImage"`
+	BannerImage       string             `json:"bannerImage"`
+	Trailer           string             `json:"trailer"`
+	Status            string             `json:"status"`
 	Season            string             `json:"season"`
 	Title             Title              `json:"title"`
-	CurrentEpisode    *int               `json:"currentEpisode"`
+	CurrentEpisode    int                `json:"currentEpisode"`
 	Mappings          []Mapping          `json:"mappings"`
 	Synonyms          []string           `json:"synonyms"`
-	CountryOfOrigin   *string            `json:"countryOfOrigin"`
-	Description       *string            `json:"description"`
-	Duration          *int               `json:"duration"`
-	Color             *string            `json:"color"`
-	Year              *int               `json:"year"`
+	CountryOfOrigin   string             `json:"countryOfOrigin"`
+	Description       string             `json:"description"`
+	Duration          int                `json:"duration"`
+	Color             string             `json:"color"`
+	Year              int                `json:"year"`
 	Rating            map[string]float64 `json:"rating"`
 	Popularity        map[string]float64 `json:"popularity"`
-	AverageRating     *float64           `json:"averageRating,omitempty"`
-	AveragePopularity *float64           `json:"averagePopularity,omitempty"`
+	AverageRating     float64            `json:"averageRating,omitempty"`
+	AveragePopularity float64            `json:"averagePopularity,omitempty"`
 	Type              string             `json:"type"`
 	Genres            []string           `json:"genres"`
 	Format            string             `json:"format"`
@@ -34,7 +34,7 @@ type Anime struct {
 
 type AnimeInfo struct {
 	ID              string      `json:"id"`
-	Title           Title       `json:"title"`
+	Title           *Title      `json:"title"`
 	Artwork         []Artwork   `json:"artwork"`
 	Synonyms        []string    `json:"synonyms"`
 	TotalEpisodes   *int        `json:"totalEpisodes"`
@@ -55,6 +55,6 @@ type AnimeInfo struct {
 	Relations       []Relation  `json:"relations"`
 	Characters      []Character `json:"characters"`
 	Type            string      `json:"type"`
-	Rating          *float64    `json:"rating"`
-	Popularity      *float64    `json:"popularity"`
+	Rating          float64     `json:"rating"`
+	Popularity      float64     `json:"popularity"`
 }
