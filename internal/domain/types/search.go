@@ -3,10 +3,11 @@ package types
 type Search struct {
 	Title    string `json:"title"`
 	Image    string `json:"image"`
-	Id       string `json:"id"`
+	ID       string `json:"id"`
 	Released string `json:"released"`
 	URL      string `json:"url"`
 }
+
 type Result struct {
 	ID         string   `json:"id"`
 	Title      string   `json:"title"`

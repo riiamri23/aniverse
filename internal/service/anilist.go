@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/goccy/go-json"
@@ -21,17 +22,15 @@ const commonQueryFields = `
 	coverImage {
 		extraLarge
 		large
-		medium
 		color
 	}
+	bannerImage
 	description
+	season
+	seasonYear
 	status
 	episodes
 	duration
-	chapters
-	volumes
-	season
-	seasonYear
 	genres
 	synonyms
 	averageScore
@@ -42,8 +41,6 @@ const commonQueryFields = `
 		site
 		thumbnail
 	}
-	bannerImage
-	
 `
 
 type AniList struct {
@@ -77,7 +74,11 @@ func (provider *AniList) GetAnimeInfoByID(ctx context.Context, mediaID int) (*ty
 // GetAnimeInfoByTitle fetches information about an anime from AniList by title
 func (provider *AniList) GetAnimeInfoByTitle(ctx context.Context, title string) (*types.AnimeInfo, error) {
 	query := fmt.Sprintf(`query ($search: String) { Page(page: 1, perPage: 1) { media(search: $search, type: ANIME) { %s } } }`, commonQueryFields)
-	return provider.fetchAnimeInfo(ctx, query, map[string]interface{}{"search": title})
+	variables := map[string]interface{}{
+		"search": title,
+	}
+	log.Printf("GraphQL Variables: %v", variables)
+	return provider.fetchAnimeInfo(ctx, query, variables)
 }
 
 // fetchAnimeInfo performs the actual data fetching from AniList API
@@ -90,7 +91,11 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	req, err := provider.new_request(ctx, body)
+	// Log the query and variables
+	log.Printf("GraphQL Query: %s", query)
+	log.Printf("GraphQL Variables: %v", variables)
+
+	req, err := provider.newRequest(ctx, body)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +111,9 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 	if _, err := raw.ReadFrom(resp.Body); err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
+
+	// Log the raw response
+	log.Printf("Raw response from AniList: %s", raw.String())
 
 	var result struct {
 		Data struct {
@@ -135,7 +143,7 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 }
 
 // newRequest creates a new HTTP request with the given body
-func (provider *AniList) new_request(ctx context.Context, body []byte) (*http.Request, error) {
+func (provider *AniList) newRequest(ctx context.Context, body []byte) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", provider.API, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new request: %w", err)

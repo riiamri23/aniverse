@@ -7,11 +7,10 @@ type Title struct {
 	Synonyms []string `json:"synonyms"`
 }
 
-type Mapping struct {
-	ID           string  `json:"id"`
-	ProviderID   string  `json:"providerId"`
-	Similarity   float64 `json:"similarity"`
-	ProviderType *string `json:"providerType"`
+type CoverImage struct {
+	Large      string  `json:"large"`
+	ExtraLarge string  `json:"extraLarge"`
+	Color      *string `json:"color"`
 }
 
 type Relation struct {
@@ -37,6 +36,20 @@ type Character struct {
 type VoiceActor struct {
 	Name  string `json:"name"`
 	Image string `json:"image"`
+}
+
+type Rating struct {
+	Rating            map[string]float64 `json:"rating"`
+	Popularity        map[string]float64 `json:"popularity"`
+	AverageRating     *float64           `json:"averageRating,omitempty"`
+	AveragePopularity *float64           `json:"averagePopularity,omitempty"`
+}
+
+type Mapping struct {
+	ID           string  `json:"id"`
+	ProviderID   string  `json:"providerId"`
+	Similarity   float64 `json:"similarity"`
+	ProviderType *string `json:"providerType"`
 }
 
 type Relations struct {

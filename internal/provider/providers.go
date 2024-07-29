@@ -1,25 +1,23 @@
 package provider
 
 import (
-	"aniverse/internal/service"
+	"aniverse/internal/service" // Import the package that contains NewGoGoAnime
 )
 
 // Provider is a collection of service providers
-type Provider struct {
-	TokenManager *service.TokenManager
+type Providers struct {
 	AniList      InformationProvider
-	AnimePahe    AnimeServiceProvider
-	// Kitsu        InfoProvider
-	// Inject other service providers here
+	GogoAnime    AnimeServiceProvider
+	Anitaku      AnimeServiceProvider
+	TokenManager *service.TokenManager
 }
 
 // NewProvider creates a new provider
-func NewProvider(tokenManager *service.TokenManager) *Provider {
-	return &Provider{
+func NewProviders(tokenManager *service.TokenManager) *Providers {
+	return &Providers{
 		TokenManager: tokenManager,
 		AniList:      service.NewAniList(tokenManager),
-		AnimePahe:    service.NewAnimePahe(),
-		// Kitsu:        service.NewKitsu(tokenManager),
-		// Instantiate other providers here
+		GogoAnime:    service.NewGogoAnime(),
+		// Anitaku:      service.NewAnitaku(),
 	}
 }

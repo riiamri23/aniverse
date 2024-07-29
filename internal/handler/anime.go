@@ -3,37 +3,38 @@ package handler
 import (
 	"aniverse/internal/domain/types"
 	"aniverse/internal/provider"
-	"aniverse/internal/service"
 	"context"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 type Handler struct {
-	infoProvider  map[string]provider.InformationProvider
-	animeProvider map[string]provider.AnimeServiceProvider
+	providers *provider.Providers
 }
 
-func NewHandler(info map[string]provider.InformationProvider, anime map[string]provider.AnimeServiceProvider) *Handler {
-	return &Handler{infoProvider: info, animeProvider: anime}
+func NewHandler(providers *provider.Providers) *Handler {
+	return &Handler{providers: providers}
 }
 
-// GetAnimeInfo fetches anime info by id or title
 func (h *Handler) GetAnimeInfo(c *fiber.Ctx) error {
-	id := c.Params("id")
+	identifier := c.Params("id")
 	providerName := c.Query("provider", "anilist")
-	var info *types.AnimeInfo
 
 	ctx := context.Background()
-	provider, ok := h.infoProvider[providerName].(*service.AniList)
-	if !ok {
+
+	var info *types.AnimeInfo
+	var err error
+
+	if providerName == "anilist" {
+		infoProvider := h.providers.AniList
+		info, err = fetchInfo(infoProvider, ctx, identifier)
+	} else {
 		return c.Status(400).SendString("Invalid provider")
 	}
 
-	info, err := fetchInfo(provider, ctx, id)
 	if err != nil {
 		log.Printf("Error fetching anime info: %v", err)
 		return c.Status(500).SendString(err.Error())
@@ -43,67 +44,100 @@ func (h *Handler) GetAnimeInfo(c *fiber.Ctx) error {
 }
 
 func (h *Handler) SearchAnime(c *fiber.Ctx) error {
-	query := c.Query("q")
-	providerName := c.Query("provider", "animepahe")
-	var results []types.Result
+	providerName := c.Query("provider", "gogoanime")
+	query := c.Query("query")
 
-	provider, ok := h.animeProvider[providerName]
-	if !ok {
-		return c.Status(400).SendString("Invalid provider")
+	var results []types.Result
+	var err error
+
+	if providerName == "gogoanime" {
+		animeProvider := h.providers.GogoAnime
+		results, err = animeProvider.Search(query)
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid provider or request parameters")
 	}
 
-	results, err := provider.Search(query)
 	if err != nil {
-		log.Printf("Error searching anime: %v", err)
-		return c.Status(500).SendString(err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(results)
 }
 
-func (h *Handler) FetchEpisodes(c *fiber.Ctx) error {
-	id := c.Params("id")
-	providerName := c.Query("provider", "animepahe")
-	var episodes []types.Episode
+func (h *Handler) GetEpisodes(c *fiber.Ctx) error {
+	providerName := c.Query("provider", "gogoanime")
+	id := c.Query("id")
 
-	provider, ok := h.animeProvider[providerName]
-	if !ok {
-		return c.Status(400).SendString("Invalid provider")
+	var episodes []types.Episode
+	var err error
+
+	if providerName == "gogoanime" {
+		animeProvider := h.providers.GogoAnime
+		episodes, err = animeProvider.Episodes(id)
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid provider or request parameters")
 	}
 
-	episodes, err := provider.FetchEpisodes(id)
 	if err != nil {
-		log.Printf("Error fetching episodes: %v", err)
-		return c.Status(500).SendString(err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(episodes)
 }
 
-// FetchSources fetches sources for a given episode
-func (h *Handler) FetchSources(c *fiber.Ctx) error {
-	id := c.Params("id")
-	providerName := c.Query("provider", "animepahe")
-	var source *types.Source
+func (h *Handler) GetSources(c *fiber.Ctx) error {
+	providerName := c.Query("provider", "gogoanime")
+	id := c.Query("id")
+	subType := c.Query("subType")
+	server := c.Query("server")
 
-	provider, ok := h.animeProvider[providerName].(*service.AnimePahe)
-	if !ok {
+	var sources *types.Source
+	var err error
+
+	if providerName == "gogoanime" {
+		animeProvider := h.providers.GogoAnime
+		sources, err = animeProvider.Sources(id, subType, server)
+	} else {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid provider or request parameters")
+	}
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(sources)
+}
+
+// New handler function for the /:animeID/:epNum route
+func (h *Handler) GetEpisodeStream(c *fiber.Ctx) error {
+	animeID := c.Params("animeID")
+	epNum := c.Params("epNum")
+	providerName := c.Query("provider", "gogoanime")
+
+	if providerName != "gogoanime" {
 		return c.Status(400).SendString("Invalid provider")
 	}
 
-	source, err := provider.FetchSources(id, types.SubTypeSub, types.StreamingServerKwik)
+	animeProvider := h.providers.GogoAnime
+
+	normalizedID := strings.ToLower(strings.ReplaceAll(animeID, " ", "-"))
+	episodeID := normalizedID + "-episode-" + epNum
+
+	sources, err := animeProvider.Sources(episodeID, "sub", "GogoCDN")
 	if err != nil {
-		log.Printf("Error fetching sources: %v", err)
+		log.Printf("Error fetching episode stream: %v", err)
 		return c.Status(500).SendString(err.Error())
 	}
 
-	return c.JSON(source)
+	return c.JSON(sources)
 }
 
-func fetchInfo(provider *service.AniList, ctx context.Context, id string) (*types.AnimeInfo, error) {
-	mediaID, err := strconv.Atoi(id)
+func fetchInfo(provider provider.InformationProvider, ctx context.Context, identifier string) (*types.AnimeInfo, error) {
+	mediaID, err := strconv.Atoi(identifier)
 	if err != nil {
-		return provider.GetAnimeInfoByTitle(ctx, id)
+		// Identifier is a title
+		return provider.GetAnimeInfoByTitle(ctx, identifier)
 	}
+	// Identifier is an ID
 	return provider.GetAnimeInfoByID(ctx, mediaID)
 }

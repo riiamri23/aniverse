@@ -10,8 +10,12 @@ type Source struct {
 }
 
 type SourceDetail struct {
-	URL     string `json:"url"`
-	Quality string `json:"quality"`
+	URL           string `json:"url"`
+	Type          string `json:"type"`
+	IsM3U8        bool   `json:"is_m3u8"`
+	Thumbnail     string `json:"thumbnail"`
+	ThumbnailType string `json:"thumbnail_type"`
+	Flags         []Flag `json:"flags"`
 }
 
 type Subtitle struct {

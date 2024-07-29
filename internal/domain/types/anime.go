@@ -49,12 +49,6 @@ type AnimeInfo struct {
 	AverageScore int        `json:"averageScore"`
 	MeanScore    int        `json:"meanScore"`
 	Popularity   int        `json:"popularity"`
-	Trailer      *Trailer   `json:"trailer,omitempty"` // Update to pointer to handle null values
+	Trailer      *Trailer   `json:"trailer,omitempty"`
 	BannerImage  string     `json:"bannerImage"`
-}
-
-type Trailer struct {
-	ID        string `json:"id"`
-	Site      string `json:"site"`
-	Thumbnail string `json:"thumbnail"`
 }
