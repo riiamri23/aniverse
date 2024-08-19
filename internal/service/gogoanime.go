@@ -163,7 +163,7 @@ func (g *GogoAnime) Sources(id, subType, server string) (*types.Source, error) {
 		}
 
 		switch server {
-		case "GogoCDN":
+		case "gogoCDN":
 			serverURL = doc.Find("#load_anime > div > div > iframe").AttrOr("src", "")
 		case "VidStreaming":
 			serverURL = doc.Find("div.anime_video_body > div.anime_muti_link > ul > li.vidcdn > a").AttrOr("data-video", "")
