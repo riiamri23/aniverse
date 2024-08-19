@@ -6,9 +6,9 @@ import (
 
 // Provider is a collection of service providers
 type Providers struct {
-	AniList      InformationProvider
-	GogoAnime    AnimeServiceProvider
-	Anitaku      AnimeServiceProvider
+	AniList   InformationProvider
+	GogoAnime AnimeServiceProvider
+	// Anitaku      AnimeServiceProvider
 	TokenManager *service.TokenManager
 }
 

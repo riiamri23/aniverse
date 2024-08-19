@@ -1,8 +1,19 @@
 # Aniverse
 An uneducated attempt at rewriting [Consumet](https://github.com/consumet/api.consumet.org?tab=readme-ov-file#installation) / [Anify](https://github.com/Eltik/Anify) in Go.
 
+
+
 ### TODO 
-- Quite literally everything.
+- [x] Basic OAuth Authentication
+- [ ] Anime Information
+  - [ ] Cache: Cache anime information to reduce redundant API calls and improve performance with Redis.
+- [ ] Anime Search
+  - [x] Basic Search
+  - [ ] Advanced Search
+- [x] Episode List
+- [ ] Streaming Sources
+  - [ ] Ensure compatibility with other servers.
+
 
 ## Providers
 - [AniList](https://anilist.co)
@@ -15,13 +26,13 @@ Fetch information about an anime by its ID or title from AniList.
 
 ##### Request Examples
 
-##### By ID
+###### By ID
 ```http
 GET /info/166531?provider=anilist
 ```
 
 
-##### By Title
+###### By Title
 ```http
 GET /info/oshi-no-ko-2nd-season??provider=anilist
 ```
@@ -69,24 +80,109 @@ GET /info/oshi-no-ko-2nd-season??provider=anilist
 }   
 ```
 
-###### Error (400 Bad Request)
+#### 2. Search Anime
+Search for an anime by its title from GogoAnime.
+##### Query Parameters
+- `provider` (optional): The provider to fetch the anime information from. Default is `gogoanime`.
+- `query`: The search query.
+```http
+GET /search?provider=gogoanime&query=oshi-no-ko
+```
 ```json
-{
-  "error": "Invalid ID"
-}
+[
+  {
+    "id": "/category/oshi-no-ko",
+    "title": "\"Oshi no Ko\"",
+    "altTitles": [],
+    "year": 2023,
+    "format": "TV",
+    "img": "https://gogocdn.net/cover/oshi-no-ko-1680121500.png",
+    "providerId": "gogoanime"
+  },
+  {
+    "id": "/category/oshi-no-ko-dub",
+    "title": "\"Oshi no Ko\" (Dub)",
+    "altTitles": [],
+    "year": 2023,
+    "format": "TV",
+    "img": "https://gogocdn.net/cover/oshi-no-ko-dub.png",
+    "providerId": "gogoanime"
+  },
+  ...
+]
+
 ```
 
-###### Error (401 Unauthorized)
+#### 3. Get Episodes
+Fetch all episodes for a given anime ID from GogoAnime.
+Query Parameters
+- `provider` (optional): The provider to fetch the episodes from. Default is `gogoanime`
+```http
+GET /episodes/oshi-no-ko
+```
 ```json
 {
-  "error": "Access token not set. Please authenticate first."
-}
+    "id": " /oshi-no-ko-episode-1",
+    "title": "EP 1",
+    "number": 1,
+    "isFiller": false,
+    "img": null,
+    "hasDub": false,
+    "description": null,
+    "rating": null
+  },
+  {
+    "id": " /oshi-no-ko-episode-2",
+    "title": "EP 2",
+    "number": 2,
+    "isFiller": false,
+    "img": null,
+    "hasDub": false,
+    "description": null,
+    "rating": null
+  }
+  ...
 ```
 
-###### Error (500 Internal Server Error)
+#### 4. Get Episode
+Fetch the streaming sources for a given episode from GogoAnime.
+
+```http
+GET /watch/oshi-no-ko-2nd-season/1
+```
 ```json
 {
-  "error": "Internal server error message"
+  "sources": [
+    {
+      "url": "${this is the source}",
+      "type": "hls",
+      "is_m3u8": true,
+      "thumbnail": "",
+      "thumbnail_type": "",
+      "flags": null
+    },
+    {
+      "url": "${this is the source}",
+      "type": "hls",
+      "is_m3u8": true,
+      "thumbnail": "",
+      "thumbnail_type": "",
+      "flags": [
+        0
+      ]
+    }
+  ],
+  "subtitles": null,
+  "audio": null,
+  "intro": {
+    "start": 0,
+    "end": 0
+  },
+  "outro": {
+    "start": 0,
+    "end": 0
+  },
+  "headers": null
 }
 
 ```

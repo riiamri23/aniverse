@@ -1,13 +1,13 @@
 package service
 
 import (
-	"aniverse/internal/domain/types"
-	"aniverse/internal/helper"
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
+
+	"aniverse/internal/domain/types"
+	"aniverse/internal/helper"
 
 	"github.com/goccy/go-json"
 )
@@ -77,7 +77,6 @@ func (provider *AniList) GetAnimeInfoByTitle(ctx context.Context, title string) 
 	variables := map[string]interface{}{
 		"search": title,
 	}
-	log.Printf("GraphQL Variables: %v", variables)
 	return provider.fetchAnimeInfo(ctx, query, variables)
 }
 
@@ -90,10 +89,6 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
-
-	// Log the query and variables
-	log.Printf("GraphQL Query: %s", query)
-	log.Printf("GraphQL Variables: %v", variables)
 
 	req, err := provider.newRequest(ctx, body)
 	if err != nil {
@@ -111,9 +106,6 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 	if _, err := raw.ReadFrom(resp.Body); err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-
-	// Log the raw response
-	log.Printf("Raw response from AniList: %s", raw.String())
 
 	var result struct {
 		Data struct {
@@ -133,12 +125,11 @@ func (provider *AniList) fetchAnimeInfo(ctx context.Context, query string, varia
 		anime = &result.Data.Page.Media[0]
 	}
 
-	if anime == nil {
+	if anime == nil || anime.ID == 0 {
 		return nil, fmt.Errorf("no anime info found")
 	}
 
 	anime.Description = helper.CleanDescription(anime.Description)
-	logAnimeInfo(anime)
 	return anime, nil
 }
 
@@ -161,25 +152,25 @@ func (provider *AniList) newRequest(ctx context.Context, body []byte) (*http.Req
 	return req, nil
 }
 
-// logAnimeInfo logs the detailed information of an anime.
-func logAnimeInfo(anime *types.AnimeInfo) {
-	fmt.Printf(
-		"ID: %d\nTitle (Romaji): %s\nTitle (English): %s\nTitle (Native): %s\nDescription: %s\nStatus: %s\nEpisodes: %d\nDuration: %d\nSeason: %s %d\nGenres: %v\nSynonyms: %v\nAverage Score: %d\nMean Score: %d\nPopularity: %d\nBanner Image: %s\n",
-		anime.ID,
-		helper.GetStringValue(anime.Title.Romaji),
-		helper.GetStringValue(anime.Title.English),
-		helper.GetStringValue(anime.Title.Native),
-		anime.Description,
-		anime.Status,
-		anime.Episodes,
-		anime.Duration,
-		anime.Season,
-		anime.SeasonYear,
-		anime.Genres,
-		anime.Synonyms,
-		anime.AverageScore,
-		anime.MeanScore,
-		anime.Popularity,
-		anime.BannerImage,
-	)
-}
+// // logAnimeInfo logs the detailed information of an anime.
+// func logAnimeInfo(anime *types.AnimeInfo) {
+// 	fmt.Printf(
+// 		"ID: %d\nTitle (Romaji): %s\nTitle (English): %s\nTitle (Native): %s\nDescription: %s\nStatus: %s\nEpisodes: %d\nDuration: %d\nSeason: %s %d\nGenres: %v\nSynonyms: %v\nAverage Score: %d\nMean Score: %d\nPopularity: %d\nBanner Image: %s\n",
+// 		anime.ID,
+// 		helper.GetStringValue(anime.Title.Romaji),
+// 		helper.GetStringValue(anime.Title.English),
+// 		helper.GetStringValue(anime.Title.Native),
+// 		anime.Description,
+// 		anime.Status,
+// 		anime.Episodes,
+// 		anime.Duration,
+// 		anime.Season,
+// 		anime.SeasonYear,
+// 		anime.Genres,
+// 		anime.Synonyms,
+// 		anime.AverageScore,
+// 		anime.MeanScore,
+// 		anime.Popularity,
+// 		anime.BannerImage,
+// 	)
+// }

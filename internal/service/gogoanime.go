@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -77,9 +76,7 @@ func (g *GogoAnime) Search(query string) ([]types.Result, error) {
 }
 func (g *GogoAnime) Episodes(id string) ([]types.Episode, error) {
 	episodes := []types.Episode{}
-	animeURL := fmt.Sprintf("%s%s", g.url, id)
-
-	log.Printf("Fetching episodes from URL: %s", animeURL) // Log the constructed URL
+	animeURL := fmt.Sprintf("%s/category/%s", g.url, id)
 
 	resp, err := http.Get(animeURL)
 	if err != nil {
@@ -113,9 +110,7 @@ func (g *GogoAnime) Episodes(id string) ([]types.Episode, error) {
 		return nil, fmt.Errorf("received non-200 response code: %d", ajaxResp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(ajaxResp.Body)               // Read the response body
-	log.Printf("AJAX Response Body: %s", string(body)) // Log the response body
-
+	body, _ := io.ReadAll(ajaxResp.Body)
 	ajaxDoc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)

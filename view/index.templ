@@ -1,0 +1,163 @@
+package view
+
+import "aniverse/internal/domain/types"
+
+type WatchData struct {
+	AnimeID   string
+	EpisodeID string
+}
+
+templ Watch(data types.Episode) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Watch Anime</title>
+			<style>
+				body {
+					background-color: #1c1c1c;
+					color: #ffffff;
+					font-family: Arial, sans-serif;
+				}
+				.watch-container {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					padding: 20px;
+				}
+				.video-player-container {
+					position: relative;
+					width: 100%;
+					max-width: 800px;
+					margin-bottom: 20px;
+				}
+				.video-player-container video {
+					width: 100%;
+					height: 450px;
+					border-radius: 10px;
+				}
+				.episode-list {
+					width: 100%;
+					max-width: 800px;
+				}
+				.episode-list ul {
+					list-style-type: none;
+					padding: 0;
+				}
+				.episode-list li {
+					background-color: #333;
+					padding: 10px;
+					margin: 5px 0;
+					border-radius: 5px;
+					cursor: pointer;
+				}
+				.episode-list li:hover {
+					background-color: #444;
+				}
+				.anime-info {
+					max-width: 800px;
+					margin-top: 20px;
+				}
+				.anime-info h2 {
+					margin-bottom: 10px;
+				}
+			</style>
+		</head>
+		<body>
+			<div class="watch-container">
+				<div class="video-player-container">
+					<video id="videoPlayer" controls></video>
+				</div>
+				<div class="episode-list">
+					<ul id="episodeList"></ul>
+				</div>
+				<div class="anime-info" id="animeInfo">
+					<h2 id="animeTitle"></h2>
+					<p id="animeDescription"></p>
+				</div>
+			</div>
+			<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+			<script>
+ document.addEventListener('DOMContentLoaded', () => {
+    const apiBaseUrl = 'http://localhost:3000'; // Replace with your API base URL
+    const videoPlayer = document.getElementById('videoPlayer');
+    const episodeList = document.getElementById('episodeList');
+    const animeTitleElement = document.getElementById('animeTitle');
+    const animeDescriptionElement = document.getElementById('animeDescription');
+
+    function getRouteParams() {
+        const url = new URL(window.location.href);
+        const pathname = url.pathname;
+        const parts = pathname.split('/').filter(part => part.trim() !== '');
+        return {
+            animeID: parts[1],
+            epNum: parts[2]
+        };
+    }
+
+    async function fetchAnimeInfo(animeID) {
+        try {
+            const response = await fetch(`${apiBaseUrl}/info/${encodeURIComponent(animeID)}`);
+            const data = await response.json();
+            animeTitleElement.textContent = data.title.english || data.title.romaji;
+            animeDescriptionElement.textContent = data.description;
+        } catch (error) {
+            console.error('Error fetching anime info:', error);
+        }
+    }
+
+    async function fetchEpisodes(animeID) {
+        try {
+            const response = await fetch(`http://localhost:3000/episodes/${encodeURIComponent(animeID)}`);
+            const episodes = await response.json();
+            episodeList.innerHTML = '';
+            episodes.forEach(episode => {
+                const li = document.createElement('li');
+                li.textContent = `Episode ${episode.number}`;
+                li.addEventListener('click', () => playEpisode(animeID, episode.number));
+                episodeList.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Error fetching episodes:', error);
+        }
+    }
+
+    async function playEpisode(animeID, epNum) {
+        try {
+            const response = await fetch(`${apiBaseUrl}/watch/${encodeURIComponent(animeID)}/${encodeURIComponent(epNum)}`);
+            const data = await response.json();
+            const sourceDetail = data.sources.find(source => source.is_m3u8);
+            if (!sourceDetail) {
+                throw new Error('No valid source found');
+            }
+            const sourceUrl = sourceDetail.url;
+
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(sourceUrl);
+                hls.attachMedia(videoPlayer);
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                videoPlayer.src = sourceUrl;
+            }
+            videoPlayer.play();
+        } catch (error) {
+            console.error('Error playing episode:', error);
+        }
+    }
+
+    const { animeID, epNum } = getRouteParams();
+    if (animeID) {
+        fetchAnimeInfo(animeID);
+        fetchEpisodes(animeID);
+        if (epNum) {
+            playEpisode(animeID, epNum);
+        }
+    }
+});
+
+
+			</script>
+		</body>
+	</html>
+}
