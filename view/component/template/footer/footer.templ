@@ -1,0 +1,22 @@
+package footer 
+
+templ Footer() {
+	<footer class=" flex h-screen w-full bg-black text-gray-300">
+		<section id="about" class="py-12 mt-20">
+			<div class="container mx-auto">
+				<div class="footer-top flex flex-col items-center">
+					<a href="/">Aniverse</a>
+				</div>
+				@Group()
+			</div>
+			<!-- A-Z list Section w/ Alphabetical Navigation -->
+			@AZList()
+			<!-- Links Section -->
+			@Links()
+			<!-- Disclaimer Text -->
+			<p class="about-text mt-8 max-w-prose mx-auto text-center text-xs opacity-50">Aniverse does not store any files on our server; we only share links to the media hosted on 3rd party services.</p>
+			<!-- Copyright -->
+			<p class="copyright mt-4 text-center text-xs">2024 © Aniverse. All Rights Reserved.</p>
+		</section>
+	</footer>
+}

@@ -5,10 +5,8 @@ import (
 	"aniverse/internal/handler"
 	"aniverse/internal/provider"
 	"aniverse/internal/service" // Import the package that contains view.WatchData
-	"context"
 	"log"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -17,16 +15,16 @@ import (
 
 func main() {
 	setting := config.LoadConfig()
-	ctx := context.Background()
+	// ctx := context.Background()
 
-	// Initialize Redis client
-	rdb := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379", // Redis address
-	})
-	err := rdb.Ping(ctx).Err()
-	if err != nil {
-		log.Fatalf("Could not connect to Redis: %v", err)
-	}
+	// // Initialize Redis client
+	// rdb := redis.NewClient(&redis.Options{
+	// 	Addr: "localhost:6379", // Redis address
+	// })
+	// err := rdb.Ping(ctx).Err()
+	// if err != nil {
+	// 	log.Fatalf("Could not connect to Redis: %v", err)
+	// }
 
 	app := fiber.New()
 
@@ -35,7 +33,7 @@ func main() {
 
 	tokenManager := service.NewTokenManager()
 	providers := provider.NewProviders(tokenManager)
-	h := handler.NewHandler(providers, rdb)
+	h := handler.NewHandler(providers, nil)
 	authHandler := handler.NewAuthHandler(tokenManager, setting)
 
 	app.Get("/", authHandler.StartOAuthFlow)
@@ -47,11 +45,11 @@ func main() {
 		return c.Next()
 	})
 
-	app.Get("/info/:id", h.GetAnimeInfo)               // works...
-	app.Get("/search", h.SearchAnime)                  // works...
-	app.Get("/episodes/:id", h.GetEpisodes)            // works...
-	app.Get("/watch/:animeID/:epNum", h.WatchEpisdode) // works...
-	app.Get("/source/:animeID/:epNum", h.GetSource)    // works ..
+	app.Get("/info/:id", h.GetAnimeInfo)              // works...
+	app.Get("/search", h.SearchAnime)                 // works...
+	app.Get("/episodes/:id", h.GetEpisodes)           // works...
+	app.Get("/watch/:animeID/:epNum", h.WatchEpisode) // works...
+	app.Get("/source/:animeID/:epNum", h.GetSource)   // works ..
 
 	// Start the server
 	log.Fatal(app.Listen(setting.Port))

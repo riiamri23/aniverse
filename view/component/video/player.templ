@@ -1,0 +1,12 @@
+package video 
+
+templ Player(source, thumbnail string) {
+	<media-player src={ source }>
+		<media-provider>
+			<media-thumbnail
+				class="vds-thumbnail"
+				src={ thumbnail }
+			></media-thumbnail>
+		</media-provider>
+	</media-player>
+}

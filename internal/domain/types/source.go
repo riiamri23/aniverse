@@ -1,21 +1,17 @@
 package types
 
 type Source struct {
-	Sources   []SourceDetail      `json:"sources"`
-	Subtitles []Subtitle          `json:"subtitles"`
-	Audio     []Audio             `json:"audio"`
-	Intro     TimeRange           `json:"intro"`
-	Outro     TimeRange           `json:"outro"`
-	Headers   map[string][]string `json:"headers"`
-}
-
-type SourceDetail struct {
-	URL           string `json:"url"`
-	Type          string `json:"type"`
-	IsM3U8        bool   `json:"is_m3u8"`
-	Thumbnail     string `json:"thumbnail"`
-	ThumbnailType string `json:"thumbnail_type"`
-	Flags         []Flag `json:"flags"`
+	URL           string              `json:"url"`
+	Type          string              `json:"type"`
+	IsM3U8        bool                `json:"is_m3u8"`
+	Thumbnail     string              `json:"thumbnail"`
+	ThumbnailType string              `json:"thumbnail_type"`
+	Flags         []Flag              `json:"flags"`
+	Subtitles     []Subtitle          `json:"subtitles"`
+	Audio         []Audio             `json:"audio"`
+	Intro         TimeRange           `json:"intro"`
+	Outro         TimeRange           `json:"outro"`
+	Headers       map[string][]string `json:"headers"`
 }
 
 type Subtitle struct {

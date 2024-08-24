@@ -37,7 +37,7 @@ type streamSBData struct {
 }
 
 func (s *StreamSB) Extract(videoUrl *url.URL, isAlt bool) (*types.Source, error) {
-	sources := new(types.Source)
+	sources := &types.Source{}
 
 	if videoUrl == nil {
 		return nil, fmt.Errorf("StreamSB Extract: %w : video URL is not valid", ErrInvalidArgument)
@@ -70,10 +70,9 @@ func (s *StreamSB) Extract(videoUrl *url.URL, isAlt bool) (*types.Source, error)
 		return nil, fmt.Errorf("StreamSB Extract: %w", ErrNoContent)
 	}
 
-	sources.Sources = append(sources.Sources, types.SourceDetail{
-		URL:    streamSBData.StreamData.File,
-		IsM3U8: strings.Contains(streamSBData.StreamData.File, ".m3u8"),
-	})
+	// Directly assign the URL to the Source struct
+	sources.URL = streamSBData.StreamData.File
+	sources.IsM3U8 = strings.Contains(streamSBData.StreamData.File, ".m3u8")
 
 	return sources, nil
 }

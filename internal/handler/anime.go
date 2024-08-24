@@ -134,13 +134,13 @@ func (h *Handler) GetSource(c *fiber.Ctx) error {
 	normalizedID := strings.ToLower(strings.ReplaceAll(animeID, " ", "-"))
 	episodeID := normalizedID + "-episode-" + epNum
 
-	sources, err := animeProvider.Sources(episodeID, "sub", "gogocdn")
+	source, err := animeProvider.Sources(episodeID, "sub", "gogocdn")
 	if err != nil {
 		log.Printf("Error fetching episode stream: %v", err)
 		return c.Status(500).SendString(err.Error())
 	}
 
-	return c.JSON(sources)
+	return c.JSON(source)
 }
 
 func fetchInfo(provider provider.InformationProvider, ctx context.Context, identifier string) (*types.AnimeInfo, error) {

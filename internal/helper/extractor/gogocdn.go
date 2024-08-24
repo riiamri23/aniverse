@@ -40,7 +40,7 @@ func NewGogocdn(baseCrawler *crawler.BaseCrawler) *Gogocdn {
 	}
 
 	return &Gogocdn{
-		name:          "gogocdn",
+		name:          "GogoCDN",
 		key:           []byte("37911490979715163134003223491201"),
 		decryptionKey: []byte("54674138327930866480207815084989"),
 		iv:            []byte("3134003223491201"),
@@ -114,11 +114,9 @@ func (g *Gogocdn) Extract(link string) (*types.Source, error) {
 		if s.File == "" {
 			continue
 		}
-		sources.Sources = append(sources.Sources, types.SourceDetail{
-			URL:    s.File,
-			Type:   s.Type,
-			IsM3U8: strings.Contains(s.File, ".m3u8"),
-		})
+		sources.URL = s.File
+		sources.Type = s.Type
+		sources.IsM3U8 = strings.Contains(s.File, ".m3u8")
 	}
 
 	switch track := dataFile.Track.(type) {
@@ -135,30 +133,11 @@ func (g *Gogocdn) Extract(link string) (*types.Source, error) {
 				break
 			}
 			if strings.ToLower(t["kind"].(string)) == "thumbnails" {
-				sources.Sources = append(sources.Sources, types.SourceDetail{
-					URL:           t["file"].(string),
-					ThumbnailType: "Sprite",
-				})
+				sources.Thumbnail = t["file"].(string)
+				sources.ThumbnailType = "Sprite"
 			}
 		}
 	}
-
-	for _, s := range dataFile.Bkp {
-		if s.File == "" {
-			continue
-		}
-		sources.Sources = append(sources.Sources, types.SourceDetail{
-			URL:    s.File,
-			Type:   s.Type,
-			IsM3U8: strings.Contains(s.File, ".m3u8"),
-			Flags:  []types.Flag{types.FlagCORSAllowed},
-		})
-	}
-
-	if len(sources.Sources) == 0 {
-		return nil, fmt.Errorf("Gogocdn Extract: %w", ErrNoContent)
-	}
-
 	return sources, nil
 }
 

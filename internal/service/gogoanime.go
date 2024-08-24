@@ -142,6 +142,9 @@ func (g *GogoAnime) Episodes(id string) ([]types.Episode, error) {
 func (g *GogoAnime) Sources(id, subType, server string) (*types.Source, error) {
 	var serverURL string
 
+	// Normalize server input to lowercase for consistent comparison
+	server = strings.ToLower(server)
+
 	if strings.HasPrefix(id, "http") {
 		serverURL = id
 	} else {
@@ -163,14 +166,14 @@ func (g *GogoAnime) Sources(id, subType, server string) (*types.Source, error) {
 		}
 
 		switch server {
-		case "gogoCDN":
+		case "gogocdn":
 			serverURL = doc.Find("#load_anime > div > div > iframe").AttrOr("src", "")
-		case "VidStreaming":
+		case "vidstreaming":
 			serverURL = doc.Find("div.anime_video_body > div.anime_muti_link > ul > li.vidcdn > a").AttrOr("data-video", "")
-		case "StreamSB":
+		case "streamsb":
 			serverURL = doc.Find("div.anime_video_body > div.anime_muti_link > ul > li.streamsb > a").AttrOr("data-video", "")
 		default:
-			serverURL = doc.Find("#load_anime > div > div > iframe").AttrOr("src", "")
+			return nil, fmt.Errorf("unsupported server type: %s", server)
 		}
 	}
 
